@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * This source code is licensed under the MIT license found in the
@@ -7,9 +7,9 @@
 
 #import "RCTUnimplementedNativeComponentView.h"
 
-#import <react/components/rncore/ComponentDescriptors.h>
-#import <react/components/rncore/EventEmitters.h>
-#import <react/components/rncore/Props.h>
+#import <react/renderer/components/rncore/ComponentDescriptors.h>
+#import <react/renderer/components/rncore/EventEmitters.h>
+#import <react/renderer/components/rncore/Props.h>
 
 using namespace facebook::react;
 
@@ -47,14 +47,14 @@ using namespace facebook::react;
 
 - (void)updateProps:(Props::Shared const &)props oldProps:(Props::Shared const &)oldProps
 {
-  const auto &oldViewProps = *std::static_pointer_cast<const UnimplementedNativeViewProps>(oldProps ?: _props);
+  const auto &oldViewProps = *std::static_pointer_cast<const UnimplementedNativeViewProps>(_props);
   const auto &newViewProps = *std::static_pointer_cast<const UnimplementedNativeViewProps>(props);
-
-  [super updateProps:props oldProps:oldProps];
 
   if (oldViewProps.name != newViewProps.name) {
     _label.text = [NSString stringWithFormat:@"'%s' is not Fabric compatible yet.", newViewProps.name.c_str()];
   }
+
+  [super updateProps:props oldProps:oldProps];
 }
 
 @end

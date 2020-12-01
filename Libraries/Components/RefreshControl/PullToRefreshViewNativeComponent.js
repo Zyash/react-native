@@ -5,21 +5,19 @@
  * LICENSE file in the root directory of this source tree.
  *
  * @format
- * @flow
+ * @flow strict-local
  */
 
 'use strict';
 
-import type {
-  BubblingEvent,
-  WithDefault,
-  CodegenNativeComponent,
-} from '../../Types/CodegenTypes';
-
-const requireNativeComponent = require('../../ReactNative/requireNativeComponent');
-
-import type {ColorValue} from '../../StyleSheet/StyleSheetTypes';
+import type {DirectEventHandler, WithDefault} from '../../Types/CodegenTypes';
+import type {ColorValue} from '../../StyleSheet/StyleSheet';
 import type {ViewProps} from '../View/ViewPropTypes';
+import * as React from 'react';
+
+import codegenNativeComponent from '../../Utilities/codegenNativeComponent';
+import type {HostComponent} from '../../Renderer/shims/ReactNativeTypes';
+import codegenNativeCommands from 'react-native/Libraries/Utilities/codegenNativeCommands';
 
 type NativeProps = $ReadOnly<{|
   ...ViewProps,
@@ -35,26 +33,33 @@ type NativeProps = $ReadOnly<{|
   /**
    * The title displayed under the refresh indicator.
    */
-  title?: ?WithDefault<string, ''>,
+  title?: WithDefault<string, null>,
 
   /**
    * Called when the view starts refreshing.
    */
-  onRefresh?: ?(event: BubblingEvent<null>) => mixed,
+  onRefresh?: ?DirectEventHandler<null>,
 
   /**
    * Whether the view should be indicating an active refresh.
    */
-  refreshing: WithDefault<boolean, false>,
+  refreshing: boolean,
 |}>;
 
-type PullToRefreshViewType = CodegenNativeComponent<
-  'PullToRefreshView',
-  NativeProps,
->;
+type ComponentType = HostComponent<NativeProps>;
 
-// TODO: Switch this over to require('./PullToRefreshNativeViewConfig')
-// once the native components are renamed in paper and fabric
-module.exports = ((requireNativeComponent(
-  'RCTRefreshControl',
-): any): PullToRefreshViewType);
+interface NativeCommands {
+  +setNativeRefreshing: (
+    viewRef: React.ElementRef<ComponentType>,
+    refreshing: boolean,
+  ) => void;
+}
+
+export const Commands: NativeCommands = codegenNativeCommands<NativeCommands>({
+  supportedCommands: ['setNativeRefreshing'],
+});
+
+export default (codegenNativeComponent<NativeProps>('PullToRefreshView', {
+  paperComponentName: 'RCTRefreshControl',
+  excludedPlatforms: ['android'],
+}): HostComponent<NativeProps>);

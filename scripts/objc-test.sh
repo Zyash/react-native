@@ -3,17 +3,22 @@
 #
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
-#
-# Script used to run iOS and tvOS tests.
-# Environment variables are used to configure what test to run.
-# If not arguments are passed to the script, it will only compile
+
+# Script used to run iOS tests.
+# If no arguments are passed to the script, it will only compile
 # the RNTester.
 # If the script is called with a single argument "test", we'll
-# also run the RNTester integration test (needs JS and packager).
+# run the RNTester unit and integration tests
 # ./objc-test.sh test
 
 SCRIPTS=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 ROOT=$(dirname "$SCRIPTS")
+
+SKIPPED_TESTS=()
+SKIPPED_TESTS+=("-skip-testing:RNTesterIntegrationTests/RNTesterSnapshotTests")
+# TODO: T60408036 This test crashes iOS 13 for bad access, please investigate
+# and re-enable. See https://gist.github.com/0xced/56035d2f57254cf518b5.
+SKIPPED_TESTS+=("-skip-testing:RNTesterUnitTests/RCTJSONTests/testNotUTF8Convertible")
 
 # Create cleanup handler
 cleanup() {
@@ -51,28 +56,27 @@ waitForPackager() {
 }
 
 runTests() {
-  xcodebuild \
-    -project "RNTester/RNTester.xcodeproj" \
-    -scheme "$SCHEME" \
-    -sdk "$SDK" \
-    -destination "$DESTINATION" \
-    -UseModernBuildSystem="$USE_MODERN_BUILD_SYSTEM" \
-    build test
+  # shellcheck disable=SC1091
+  source "./scripts/.tests.env"
+  xcodebuild build test \
+    -workspace packages/rn-tester/RNTesterPods.xcworkspace \
+    -scheme RNTester \
+    -sdk iphonesimulator \
+    -destination "platform=iOS Simulator,name=$IOS_DEVICE,OS=$IOS_TARGET_OS" \
+      "${SKIPPED_TESTS[@]}"
 }
 
 buildProject() {
-  xcodebuild \
-    -project "RNTester/RNTester.xcodeproj" \
-    -scheme "$SCHEME" \
-    -sdk "$SDK" \
-    -UseModernBuildSystem="$USE_MODERN_BUILD_SYSTEM" \
-    build
+  xcodebuild build \
+    -workspace packages/rn-tester/RNTesterPods.xcworkspace \
+    -scheme RNTester \
+    -sdk iphonesimulator
 }
 
 xcprettyFormat() {
   if [ "$CI" ]; then
     # Circle CI expects JUnit reports to be available here
-    REPORTS_DIR="$HOME/react-native/reports"
+    REPORTS_DIR="$HOME/react-native/reports/junit"
   else
     THIS_DIR=$(cd -P "$(dirname "$(readlink "${BASH_SOURCE[0]}" || echo "${BASH_SOURCE[0]}")")" && pwd)
 
@@ -80,13 +84,13 @@ xcprettyFormat() {
     REPORTS_DIR="$THIS_DIR/../build/reports"
   fi
 
-  xcpretty --report junit --output "$REPORTS_DIR/junit/$TEST_NAME/results.xml"
+  xcpretty --report junit --output "$REPORTS_DIR/ios/results.xml"
 }
 
 preloadBundles() {
   # Preload the RNTesterApp bundle for better performance in integration tests
-  curl -s 'http://localhost:8081/RNTester/js/RNTesterApp.ios.bundle?platform=ios&dev=true' -o /dev/null
-  curl -s 'http://localhost:8081/RNTester/js/RNTesterApp.ios.bundle?platform=ios&dev=true&minify=false' -o /dev/null
+  curl -s 'http://localhost:8081/packages/rn-tester/js/RNTesterApp.ios.bundle?platform=ios&dev=true' -o /dev/null
+  curl -s 'http://localhost:8081/packages/rn-tester/js/RNTesterApp.ios.bundle?platform=ios&dev=true&minify=false' -o /dev/null
   curl -s 'http://localhost:8081/IntegrationTests/IntegrationTestsApp.bundle?platform=ios&dev=true' -o /dev/null
   curl -s 'http://localhost:8081/IntegrationTests/RCTRootViewIntegrationTestApp.bundle?platform=ios&dev=true' -o /dev/null
 }

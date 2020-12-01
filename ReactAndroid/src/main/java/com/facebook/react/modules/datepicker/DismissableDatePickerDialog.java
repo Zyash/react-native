@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * This source code is licensed under the MIT license found in the
@@ -9,25 +9,14 @@ package com.facebook.react.modules.datepicker;
 
 import android.app.DatePickerDialog;
 import android.content.Context;
-import android.os.Build;
 import android.content.res.TypedArray;
+import android.os.Build;
 import android.util.AttributeSet;
 import android.widget.DatePicker;
-
-import javax.annotation.Nullable;
+import androidx.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
-/**
- * <p>
- *   Certain versions of Android (Jellybean-KitKat) have a bug where when dismissed, the
- *   {@link DatePickerDialog} still calls the OnDateSetListener. This class works around that issue.
- * </p>
- *
- * <p>
- *   See: <a href="https://code.google.com/p/android/issues/detail?id=34833">Issue 34833</a>
- * </p>
- */
 public class DismissableDatePickerDialog extends DatePickerDialog {
 
   public DismissableDatePickerDialog(
@@ -51,15 +40,6 @@ public class DismissableDatePickerDialog extends DatePickerDialog {
     fixSpinner(context, year, monthOfYear, dayOfMonth);
   }
 
-  @Override
-  protected void onStop() {
-    // do *not* call super.onStop() on KitKat on lower, as that would erroneously call the
-    // OnDateSetListener when the dialog is dismissed, or call it twice when "OK" is pressed.
-    if (Build.VERSION.SDK_INT > Build.VERSION_CODES.KITKAT) {
-      super.onStop();
-    }
-  }
-
   private void fixSpinner(Context context, int year, int month, int dayOfMonth) {
     if (Build.VERSION.SDK_INT == Build.VERSION_CODES.N) {
       try {
@@ -69,30 +49,44 @@ public class DismissableDatePickerDialog extends DatePickerDialog {
         Field datePickerStyleableField = styleableClass.getField("DatePicker");
         int[] datePickerStyleable = (int[]) datePickerStyleableField.get(null);
 
-        final TypedArray a = context.obtainStyledAttributes(null, datePickerStyleable, android.R.attr.datePickerStyle, 0);
+        final TypedArray a =
+            context.obtainStyledAttributes(
+                null, datePickerStyleable, android.R.attr.datePickerStyle, 0);
         Field datePickerModeStyleableField = styleableClass.getField("DatePicker_datePickerMode");
         int datePickerModeStyleable = datePickerModeStyleableField.getInt(null);
         final int mode = a.getInt(datePickerModeStyleable, MODE_SPINNER);
         a.recycle();
 
         if (mode == MODE_SPINNER) {
-          DatePicker datePicker = (DatePicker) findField(DatePickerDialog.class, DatePicker.class, "mDatePicker").get(this);
+          DatePicker datePicker =
+              (DatePicker)
+                  findField(DatePickerDialog.class, DatePicker.class, "mDatePicker").get(this);
           Class<?> delegateClass = Class.forName("android.widget.DatePickerSpinnerDelegate");
           Field delegateField = findField(DatePicker.class, delegateClass, "mDelegate");
           Object delegate = delegateField.get(datePicker);
           Class<?> spinnerDelegateClass;
           spinnerDelegateClass = Class.forName("android.widget.DatePickerSpinnerDelegate");
 
-          // In 7.0 Nougat for some reason the datePickerMode is ignored and the delegate is DatePickerClockDelegate
+          // In 7.0 Nougat for some reason the datePickerMode is ignored and the delegate is
+          // DatePickerClockDelegate
           if (delegate.getClass() != spinnerDelegateClass) {
             delegateField.set(datePicker, null); // throw out the DatePickerClockDelegate!
             datePicker.removeAllViews(); // remove the DatePickerClockDelegate views
-            Method createSpinnerUIDelegate = DatePicker.class.getDeclaredMethod("createSpinnerUIDelegate", Context.class, AttributeSet.class, int.class, int.class);
+            Method createSpinnerUIDelegate =
+                DatePicker.class.getDeclaredMethod(
+                    "createSpinnerUIDelegate",
+                    Context.class,
+                    AttributeSet.class,
+                    int.class,
+                    int.class);
             createSpinnerUIDelegate.setAccessible(true);
 
             // Instantiate a DatePickerSpinnerDelegate throughout createSpinnerUIDelegate method
-            delegate = createSpinnerUIDelegate.invoke(datePicker, context, null, android.R.attr.datePickerStyle, 0);
-            delegateField.set(datePicker, delegate); // set the DatePicker.mDelegate to the spinner delegate
+            delegate =
+                createSpinnerUIDelegate.invoke(
+                    datePicker, context, null, android.R.attr.datePickerStyle, 0);
+            delegateField.set(
+                datePicker, delegate); // set the DatePicker.mDelegate to the spinner delegate
             datePicker.setCalendarViewShown(false);
             // Initialize the date for the DatePicker delegate again
             datePicker.init(year, month, dayOfMonth, this);

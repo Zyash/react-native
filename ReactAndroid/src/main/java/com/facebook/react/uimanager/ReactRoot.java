@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * This source code is licensed under the MIT license found in the
@@ -9,42 +9,53 @@ package com.facebook.react.uimanager;
 
 import android.os.Bundle;
 import android.view.ViewGroup;
+import androidx.annotation.Nullable;
 import com.facebook.react.uimanager.common.UIManagerType;
-import javax.annotation.Nullable;
 
-
-/**
- * Interface for the root native view of a React native application
- */
+/** Interface for the root native view of a React native application */
 public interface ReactRoot {
 
-  /**
-   * Return cached launch properties for app
-   */
-  @Nullable Bundle getAppProperties();
-  @Nullable String getInitialUITemplate();
+  /** Return cached launch properties for app */
+  @Nullable
+  Bundle getAppProperties();
 
-  /**
-   * Fabric or Default UI Manager, see {@link UIManagerType}
-   */
-  @UIManagerType int getUIManagerType();
+  @Nullable
+  String getInitialUITemplate();
+
+  String getJSModuleName();
+
+  /** Fabric or Default UI Manager, see {@link UIManagerType} */
+  @UIManagerType
+  int getUIManagerType();
 
   int getRootViewTag();
 
   void setRootViewTag(int rootViewTag);
 
-  /**
-   * Calls into JS to start the React application.
-   */
+  /** Calls into JS to start the React application. */
   void runApplication();
 
-  /**
-   * Handler for stages {@link com.facebook.react.surface.ReactStage}
-   */
+  /** Handler for stages {@link com.facebook.react.surface.ReactStage} */
   void onStage(int stage);
 
-  /**
-   * Return native view for root
-   */
+  /** Return native view for root */
   ViewGroup getRootViewGroup();
+
+  /** @return Cached values for widthMeasureSpec. */
+  int getWidthMeasureSpec();
+
+  /** @return Cached values for and heightMeasureSpec. */
+  int getHeightMeasureSpec();
+
+  /** Sets a flag that determines whether to log that content appeared on next view added. */
+  void setShouldLogContentAppeared(boolean shouldLogContentAppeared);
+
+  /**
+   * @return a {@link String} that represents the root js application that is being rendered with
+   *     this {@link ReactRoot}
+   * @deprecated We recommend to not use this method as it is will be replaced in the near future.
+   */
+  @Deprecated
+  @Nullable
+  String getSurfaceID();
 }

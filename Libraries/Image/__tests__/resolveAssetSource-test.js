@@ -10,20 +10,20 @@
 
 'use strict';
 
-const AssetRegistry = require('../AssetRegistry');
-const Platform = require('../../Utilities/Platform');
-const resolveAssetSource = require('../resolveAssetSource');
-
-import NativeSourceCode from '../../NativeModules/specs/NativeSourceCode';
-
-function expectResolvesAsset(input, expectedSource) {
-  const assetId = AssetRegistry.registerAsset(input);
-  expect(resolveAssetSource(assetId)).toEqual(expectedSource);
-}
-
 describe('resolveAssetSource', () => {
+  let AssetRegistry;
+  let resolveAssetSource;
+  let NativeSourceCode;
+  let Platform;
+
   beforeEach(() => {
     jest.resetModules();
+
+    AssetRegistry = require('@react-native/assets/registry');
+    resolveAssetSource = require('../resolveAssetSource');
+    NativeSourceCode = require('../../NativeModules/specs/NativeSourceCode')
+      .default;
+    Platform = require('../../Utilities/Platform');
   });
 
   it('returns same source for simple static and network images', () => {
@@ -143,6 +143,29 @@ describe('resolveAssetSource', () => {
         },
       );
     });
+
+    it('resolves an image with a relative path outside of root', () => {
+      expectResolvesAsset(
+        {
+          __packager_asset: true,
+          fileSystemLocation: '/module/a',
+          httpServerLocation: '/assets/../../module/a',
+          width: 100,
+          height: 200,
+          scales: [1],
+          hash: '5b6f00f',
+          name: 'logo',
+          type: 'png',
+        },
+        {
+          __packager_asset: true,
+          width: 100,
+          height: 200,
+          uri: 'file:///Path/To/Sample.app/assets/__module/a/logo.png',
+          scale: 1,
+        },
+      );
+    });
   });
 
   describe('bundle was loaded from assets on Android', () => {
@@ -171,6 +194,29 @@ describe('resolveAssetSource', () => {
           width: 100,
           height: 200,
           uri: 'awesomemodule_subdir_logo1_',
+          scale: 1,
+        },
+      );
+    });
+
+    it('resolves an image with a relative path outside of root', () => {
+      expectResolvesAsset(
+        {
+          __packager_asset: true,
+          fileSystemLocation: '/module/a',
+          httpServerLocation: '/assets/../../module/a',
+          width: 100,
+          height: 200,
+          scales: [1],
+          hash: '5b6f00f',
+          name: 'logo',
+          type: 'png',
+        },
+        {
+          __packager_asset: true,
+          width: 100,
+          height: 200,
+          uri: '__module_a_logo',
           scale: 1,
         },
       );
@@ -303,9 +349,16 @@ describe('resolveAssetSource', () => {
       );
     });
   });
+
+  function expectResolvesAsset(input, expectedSource) {
+    const assetId = AssetRegistry.registerAsset(input);
+    expect(resolveAssetSource(assetId)).toEqual(expectedSource);
+  }
 });
 
 describe('resolveAssetSource.pickScale', () => {
+  const resolveAssetSource = require('../resolveAssetSource');
+
   it('picks matching scale', () => {
     expect(resolveAssetSource.pickScale([1], 2)).toBe(1);
     expect(resolveAssetSource.pickScale([1, 2, 3], 2)).toBe(2);

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * This source code is licensed under the MIT license found in the
@@ -19,9 +19,9 @@
  * rootViewDidChangeIntrinsicSize method of the RCTRootViewDelegate will be called.
  */
 typedef NS_ENUM(NSInteger, RCTRootViewSizeFlexibility) {
-  RCTRootViewSizeFlexibilityNone           = 0,
-  RCTRootViewSizeFlexibilityWidth          = 1 << 0,
-  RCTRootViewSizeFlexibilityHeight         = 1 << 1,
+  RCTRootViewSizeFlexibilityNone = 0,
+  RCTRootViewSizeFlexibilityWidth = 1 << 0,
+  RCTRootViewSizeFlexibilityHeight = 1 << 1,
   RCTRootViewSizeFlexibilityWidthAndHeight = RCTRootViewSizeFlexibilityWidth | RCTRootViewSizeFlexibilityHeight,
 };
 
@@ -36,9 +36,9 @@ extern "C"
 extern
 #endif
 
-NS_ASSUME_NONNULL_BEGIN
+    NS_ASSUME_NONNULL_BEGIN
 
-NSString *const RCTContentDidAppearNotification;
+        NSString *const RCTContentDidAppearNotification;
 
 /**
  * Native view used to host React-managed views within the app. Can be used just
@@ -65,7 +65,6 @@ NSString *const RCTContentDidAppearNotification;
                        moduleName:(NSString *)moduleName
                 initialProperties:(nullable NSDictionary *)initialProperties
                     launchOptions:(nullable NSDictionary *)launchOptions;
-
 
 /**
  * The name of the JavaScript module to execute within the
@@ -95,6 +94,11 @@ NSString *const RCTContentDidAppearNotification;
  */
 @property (nonatomic, assign) RCTRootViewSizeFlexibility sizeFlexibility;
 
+/*
+ * The minimum size of the root view, defaults to CGSizeZero.
+ */
+@property (nonatomic, assign) CGSize minimumSize;
+
 /**
  * The delegate that handles intrinsic size updates.
  */
@@ -116,25 +120,6 @@ NSString *const RCTContentDidAppearNotification;
  * (for example) a UIActivityIndicatorView or a placeholder image.
  */
 @property (nonatomic, strong, nullable) UIView *loadingView;
-
-/**
- * Calling this will result in emitting a "touches cancelled" event to js,
- * which effectively cancels all js "gesture recognizers" such as touchable components
- * (unless they explicitely ignore cancellation events, but no one should do that).
- *
- * This API is exposed for integration purposes where you embed RN rootView
- * in a native view with a native gesture recognizer,
- * whose activation should prevent any in-flight js "gesture recognizer" from activating.
- *
- * An example would be RN rootView embedded in an UIScrollView.
- * When you touch down on a touchable component and drag your finger up,
- * you don't want any touch to be registered as soon as the UIScrollView starts scrolling.
- *
- * Note that this doesn't help with tapping on a touchable element that is being scrolled,
- * unless you can call cancelTouches exactly between "touches began" and "touches ended" events.
- * This is a reason why this API may be soon removed in favor of a better solution.
- */
-- (void)cancelTouches;
 
 /**
  * When set, any touches on the RCTRootView that are not matched up to any of the child
@@ -163,10 +148,17 @@ NSString *const RCTContentDidAppearNotification;
  * The intrinsic size of the root view's content. This is set right before the
  * `rootViewDidChangeIntrinsicSize` method of `RCTRootViewDelegate` is called.
  * This property is deprecated and will be removed in next releases.
- * Use UIKit `intrinsicContentSize` propery instead.
+ * Use UIKit `intrinsicContentSize` property instead.
  */
-@property (readonly, nonatomic, assign) CGSize intrinsicSize
-__deprecated_msg("Use `intrinsicContentSize` instead.");
+@property (readonly, nonatomic, assign) CGSize intrinsicSize __deprecated_msg("Use `intrinsicContentSize` instead.");
+
+/**
+ * This methods is deprecated and will be removed soon.
+ * To interrupt a React Native gesture recognizer, use the standard
+ * `UIGestureRecognizer` negotiation process.
+ * See `UIGestureRecognizerDelegate` for more details.
+ */
+- (void)cancelTouches;
 
 @end
 

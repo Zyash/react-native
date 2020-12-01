@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * This source code is licensed under the MIT license found in the
@@ -7,18 +7,15 @@
 
 package com.facebook.react.modules.clipboard;
 
-import android.content.ClipboardManager;
 import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
-
 import com.facebook.react.bridge.ContextBaseJavaModule;
-import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.Promise;
+import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.module.annotations.ReactModule;
 
-/**
- * A module that allows JS to get/set clipboard contents.
- */
+/** A module that allows JS to get/set clipboard contents. */
 @ReactModule(name = ClipboardModule.NAME)
 public class ClipboardModule extends ContextBaseJavaModule {
 

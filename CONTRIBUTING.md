@@ -8,9 +8,9 @@ The [Open Source Guides](https://opensource.guide/) website has a collection of 
 * [Building Welcoming Communities](https://opensource.guide/building-community/)
 
 
-### [Code of Conduct](https://code.fb.com/codeofconduct/)
+### [Code of Conduct](https://github.com/facebook/react/blob/master/CODE_OF_CONDUCT.md)
 
-As a reminder, all contributors are expected to adhere to the [Code of Conduct](https://code.facebook.com/codeofconduct).
+As a reminder, all contributors are expected to adhere to the [Code of Conduct](https://github.com/facebook/react/blob/master/CODE_OF_CONDUCT.md).
 
 ## Ways to Contribute
 
@@ -18,7 +18,7 @@ If you are eager to start contributing code right away, we have a list of [good 
 
 There are other ways you can contribute without writing a single line of code. Here are a few things you can do to help out:
 
-1. **Replying and handling open issues.** We get a lot of issues every day, and some of them may lack necessary information. You can help out by guiding people through the process of filling out the issue template, asking for clarifying information, or pointing them to existing issues that match their description of the problem. We'll cover more about this process later, in [Handling Issues](http://github.com/facebook/react-native/wiki/Handling-Issues).
+1. **Replying and handling open issues.** We get a lot of issues every day, and some of them may lack necessary information. You can help out by guiding people through the process of filling out the issue template, asking for clarifying information, or pointing them to existing issues that match their description of the problem. We cover more about this process in the [Issue Triage wiki](https://github.com/facebook/react-native/wiki/Issues#triage).
 2. **Reviewing pull requests for the docs.** Reviewing [documentation updates](https://github.com/facebook/react-native-website/pulls) can be as simple as checking for spelling and grammar. If you encounter situations that can be explained better in the docs, click **Edit** at the top of most docs pages to get started with your own contribution.
 3. **Help people write test plans.** Some pull requests sent to the main repository may lack a proper test plan. These help reviewers understand how the change was tested, and can speed up the time it takes for a contribution to be accepted.
 
@@ -30,6 +30,7 @@ We use GitHub issues and pull requests to keep track of bug reports and contribu
 
 You can learn more about the contribution process in the following documents:
 
+* [Issues](https://github.com/facebook/react-native/wiki/Issues)
 * [Pull Requests](https://github.com/facebook/react-native/wiki/Pull-Requests)
 
 We also have a thriving community of contributors who would be happy to help you get set up. You can reach out to us through [@ReactNative](http://twitter.com/reactnative) (the React Native team) and [@ReactNativeComm](http://twitter.com/reactnativecomm) (the React Native Community organization).
@@ -47,9 +48,9 @@ There are a few other repositories you might want to familiarize yourself with:
 
 Browsing through these repositories should provide some insight into how the React Native open source project is managed.
 
-## Handling Issues
+## GitHub Issues
 
-We use GitHub issues to track bugs exclusively. You can report an issue by filing a [Bug Report](https://github.com/facebook/react-native/issues/new/choose). Watch this space for more details on how to get involved and triage issues.
+We use GitHub issues to track bugs exclusively. We have documented our issue handling processes in the [Issues wiki](https://github.com/facebook/react-native/wiki/Issues).
 
 ### Security Bugs
 
@@ -57,7 +58,7 @@ Facebook has a [bounty program](https://www.facebook.com/whitehat/) for the safe
 
 ## Helping with Documentation
 
-The React Native documentation is hosted as part of the React Native website repository at https://github.com/facebook/react-native-website. The website itself is located at <https://facebook.github.io/react-native> and it is built using [Docusaurus](https://docusaurus.io/). If there's anything you'd like to change in the docs, you can get started by clicking on the "Edit" button located on the upper right of most pages in the website.
+The React Native documentation is hosted as part of the React Native website repository at https://github.com/facebook/react-native-website. The website itself is located at <https://reactnative.dev/> and it is built using [Docusaurus](https://docusaurus.io/). If there's anything you'd like to change in the docs, you can get started by clicking on the "Edit" button located on the upper right of most pages in the website.
 
 If you are adding new functionality or introducing a change in behavior, we will ask you to update the documentation to reflect your changes.
 
@@ -71,18 +72,21 @@ We recommend referring to the [CONTRIBUTING](https://github.com/facebook/react-n
 
 ## Contributing Code
 
-Code-level contributions to React Native generally come in the form of [pull requests](https://help.github.com/en/articles/about-pull-requests). The process of proposing a change to React Native can be summarized as follows:
+Code-level contributions to React Native generally come in the form of [pull requests](https://help.github.com/en/articles/about-pull-requests). These are done by forking the repo and making changes locally. Directly in the repo, there is the [`rn-tester` app](/packages/rn-tester) that you can install on your device (or simulators) and use to test the changes you're making to React Native sources.
+
+The process of proposing a change to React Native can be summarized as follows:
 
 1. Fork the React Native repository and create your branch from `master`.
-2. If you've added code that should be tested, add tests.
-3. If you've changed APIs, update the documentation.
-4. Ensure the test suite passes, either locally or on CI once you opened a pull request.
-5. Make sure your code lints (for example via `yarn lint --fix`).
-6. Push the changes to your fork.
-7. Create a pull request to the React Native repository.
-8. Review and address comments on your pull request.
+2. Make the desired changes to React Native sources. Use the `packages/rn-tester` app to test them out.
+3. If you've added code that should be tested, add tests.
+4. If you've changed APIs, update the documentation, which lives in [another repo](https://github.com/facebook/react-native-website/).
+5. Ensure the test suite passes, either locally or on CI once you opened a pull request.
+6. Make sure your code lints (for example via `yarn lint --fix`).
+7. Push the changes to your fork.
+8. Create a pull request to the React Native repository.
+9. Review and address comments on your pull request.
     1. A bot may comment with suggestions. Generally we ask you to resolve these first before a maintainer will review your code.
-9. If you haven't already, complete the Contributor License Agreement ("CLA").
+10. If you haven't already, please complete the [Contributor License Agreement](https://github.com/facebook/react-native/wiki/Contributor-License-Agreement) ("CLA"). **[Complete your CLA here.](https://code.facebook.com/cla)**
 
 If all goes well, your pull request will be merged. If it is not merged, maintainers will do their best to explain the reason why.
 

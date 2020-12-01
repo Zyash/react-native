@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * This source code is licensed under the MIT license found in the
@@ -8,12 +8,12 @@
 #import <UIKit/UIKit.h>
 #import <memory>
 
-#import <React/RCTPrimitives.h>
-#import <react/core/ComponentDescriptor.h>
-#import <react/core/LayoutConstraints.h>
-#import <react/core/LayoutContext.h>
-#import <react/mounting/MountingCoordinator.h>
-#import <react/uimanager/ComponentDescriptorFactory.h>
+#import <react/renderer/componentregistry/ComponentDescriptorFactory.h>
+#import <react/renderer/core/ComponentDescriptor.h>
+#import <react/renderer/core/LayoutConstraints.h>
+#import <react/renderer/core/LayoutContext.h>
+#import <react/renderer/mounting/MountingCoordinator.h>
+#import <react/renderer/scheduler/SchedulerToolbox.h>
 #import <react/utils/ContextContainer.h>
 
 NS_ASSUME_NONNULL_BEGIN
@@ -27,6 +27,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)schedulerDidFinishTransaction:(facebook::react::MountingCoordinator::Shared const &)mountingCoordinator;
 
+- (void)schedulerDidDispatchCommand:(facebook::react::ShadowView const &)shadowView
+                        commandName:(std::string const &)commandName
+                               args:(folly::dynamic const)args;
+
 @end
 
 /**
@@ -36,8 +40,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (atomic, weak, nullable) id<RCTSchedulerDelegate> delegate;
 
-- (instancetype)initWithContextContainer:(facebook::react::ContextContainer::Shared)contextContatiner
-                componentRegistryFactory:(facebook::react::ComponentRegistryFactory)componentRegistryFactory;
+- (instancetype)initWithToolbox:(facebook::react::SchedulerToolbox)toolbox;
 
 - (void)startSurfaceWithSurfaceId:(facebook::react::SurfaceId)surfaceId
                        moduleName:(NSString *)moduleName
@@ -55,7 +58,16 @@ NS_ASSUME_NONNULL_BEGIN
                                        layoutContext:(facebook::react::LayoutContext)layoutContext
                                            surfaceId:(facebook::react::SurfaceId)surfaceId;
 
-- (const facebook::react::ComponentDescriptor &)getComponentDescriptor:(facebook::react::ComponentHandle)handle;
+- (facebook::react::ComponentDescriptor const *)findComponentDescriptorByHandle_DO_NOT_USE_THIS_IS_BROKEN:
+    (facebook::react::ComponentHandle)handle;
+
+- (facebook::react::MountingCoordinator::Shared)mountingCoordinatorWithSurfaceId:(facebook::react::SurfaceId)surfaceId;
+
+- (void)onAnimationStarted;
+
+- (void)onAllAnimationsComplete;
+
+- (void)animationTick;
 
 @end
 

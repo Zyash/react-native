@@ -5,25 +5,27 @@
  * LICENSE file in the root directory of this source tree.
  *
  * @format
- * @flow
+ * @flow strict-local
  */
 
 'use strict';
 
 import type {
-  Float,
-  BubblingEvent,
-  DirectEvent,
+  BubblingEventHandler,
+  DirectEventHandler,
+  Double,
   WithDefault,
-  CodegenNativeComponent,
 } from '../../Types/CodegenTypes';
 
-import type {ColorValue} from '../../StyleSheet/StyleSheetTypes';
+import codegenNativeComponent from '../../Utilities/codegenNativeComponent';
+import type {HostComponent} from '../../Renderer/shims/ReactNativeTypes';
+
+import type {ColorValue} from '../../StyleSheet/StyleSheet';
 import type {ImageSource} from '../../Image/ImageSource';
 import type {ViewProps} from '../View/ViewPropTypes';
 
 type Event = $ReadOnly<{|
-  value: Float,
+  value: Double,
   fromUser?: boolean,
 |}>;
 
@@ -31,32 +33,28 @@ type NativeProps = $ReadOnly<{|
   ...ViewProps,
 
   // Props
-  disabled?: ?WithDefault<boolean, false>,
-  enabled?: ?WithDefault<boolean, false>,
+  disabled?: WithDefault<boolean, false>,
+  enabled?: WithDefault<boolean, true>,
   maximumTrackImage?: ?ImageSource,
   maximumTrackTintColor?: ?ColorValue,
-  maximumValue?: ?WithDefault<Float, 1>,
+  maximumValue?: WithDefault<Double, 1>,
   minimumTrackImage?: ?ImageSource,
   minimumTrackTintColor?: ?ColorValue,
-  minimumValue?: ?WithDefault<Float, 0>,
-  step?: ?WithDefault<Float, 0>,
-  testID?: ?WithDefault<string, ''>,
+  minimumValue?: WithDefault<Double, 0>,
+  step?: WithDefault<Double, 0>,
+  testID?: WithDefault<string, ''>,
   thumbImage?: ?ImageSource,
   thumbTintColor?: ?ColorValue,
   trackImage?: ?ImageSource,
-  value: ?WithDefault<Float, 0>,
+  value?: WithDefault<Double, 0>,
 
   // Events
-  onChange?: ?(event: BubblingEvent<Event>) => void,
-  onValueChange?: ?(event: BubblingEvent<Event>) => void,
-  onSlidingComplete?: ?(event: DirectEvent<Event>) => void,
+  onChange?: ?BubblingEventHandler<Event>,
+  onValueChange?: ?BubblingEventHandler<Event, 'paperValueChange'>,
+  onSlidingComplete?: ?DirectEventHandler<Event, 'paperSlidingComplete'>,
 |}>;
 
-type Options = {
+export default (codegenNativeComponent<NativeProps>('Slider', {
   interfaceOnly: true,
-  isDeprecatedPaperComponentNameRCT: true,
-};
-
-type SliderType = CodegenNativeComponent<'Slider', NativeProps, Options>;
-
-module.exports = ((require('SliderNativeViewConfig'): any): SliderType);
+  paperComponentName: 'RCTSlider',
+}): HostComponent<NativeProps>);

@@ -10,21 +10,21 @@
 
 'use strict';
 
-const EventEmitter = require('../vendor/emitter/EventEmitter');
-const NativeEventEmitter = require('../EventEmitter/NativeEventEmitter');
+import NativeEventEmitter from '../EventEmitter/NativeEventEmitter';
+import logError from '../Utilities/logError';
+import EventEmitter from '../vendor/emitter/EventEmitter';
 import NativeAppState from './NativeAppState';
-
-const logError = require('../Utilities/logError');
-const invariant = require('invariant');
+import invariant from 'invariant';
 
 /**
  * `AppState` can tell you if the app is in the foreground or background,
  * and notify you when the state changes.
  *
- * See http://facebook.github.io/react-native/docs/appstate.html
+ * See https://reactnative.dev/docs/appstate.html
  */
 class AppState extends NativeEventEmitter {
   _eventHandlers: Object;
+  _supportedEvents = ['change', 'memoryWarning', 'blur', 'focus'];
   currentState: ?string;
   isAvailable: boolean;
 
@@ -32,10 +32,10 @@ class AppState extends NativeEventEmitter {
     super(NativeAppState);
 
     this.isAvailable = true;
-    this._eventHandlers = {
-      change: new Map(),
-      memoryWarning: new Map(),
-    };
+    this._eventHandlers = this._supportedEvents.reduce((handlers, key) => {
+      handlers[key] = new Map();
+      return handlers;
+    }, {});
 
     this.currentState = NativeAppState.getConstants().initialAppState;
 
@@ -71,37 +71,58 @@ class AppState extends NativeEventEmitter {
    * Add a handler to AppState changes by listening to the `change` event type
    * and providing the handler.
    *
-   * See http://facebook.github.io/react-native/docs/appstate.html#addeventlistener
+   * See https://reactnative.dev/docs/appstate.html#addeventlistener
    */
   addEventListener(type: string, handler: Function) {
     invariant(
-      ['change', 'memoryWarning'].indexOf(type) !== -1,
+      this._supportedEvents.indexOf(type) !== -1,
       'Trying to subscribe to unknown event: "%s"',
       type,
     );
-    if (type === 'change') {
-      this._eventHandlers[type].set(
-        handler,
-        this.addListener('appStateDidChange', appStateData => {
-          handler(appStateData.app_state);
-        }),
-      );
-    } else if (type === 'memoryWarning') {
-      this._eventHandlers[type].set(
-        handler,
-        this.addListener('memoryWarning', handler),
-      );
+
+    switch (type) {
+      case 'change': {
+        this._eventHandlers[type].set(
+          handler,
+          this.addListener('appStateDidChange', appStateData => {
+            handler(appStateData.app_state);
+          }),
+        );
+        break;
+      }
+      case 'memoryWarning': {
+        this._eventHandlers[type].set(
+          handler,
+          this.addListener('memoryWarning', handler),
+        );
+        break;
+      }
+
+      case 'blur':
+      case 'focus': {
+        this._eventHandlers[type].set(
+          handler,
+          this.addListener('appStateFocusChange', hasFocus => {
+            if (type === 'blur' && !hasFocus) {
+              handler();
+            }
+            if (type === 'focus' && hasFocus) {
+              handler();
+            }
+          }),
+        );
+      }
     }
   }
 
   /**
    * Remove a handler by passing the `change` event type and the handler.
    *
-   * See http://facebook.github.io/react-native/docs/appstate.html#removeeventlistener
+   * See https://reactnative.dev/docs/appstate.html#removeeventlistener
    */
   removeEventListener(type: string, handler: Function) {
     invariant(
-      ['change', 'memoryWarning'].indexOf(type) !== -1,
+      this._supportedEvents.indexOf(type) !== -1,
       'Trying to remove listener for unknown event: "%s"',
       type,
     );
@@ -126,11 +147,11 @@ class MissingNativeAppStateShim extends EventEmitter {
   isAvailable: boolean = false;
   currentState: ?string = null;
 
-  addEventListener() {
+  addEventListener(type: string, handler: Function) {
     throwMissingNativeModule();
   }
 
-  removeEventListener() {
+  removeEventListener(type: string, handler: Function) {
     throwMissingNativeModule();
   }
 
@@ -151,10 +172,8 @@ class MissingNativeAppStateShim extends EventEmitter {
 // This module depends on the native `RCTAppState` module. If you don't include it,
 // `AppState.isAvailable` will return `false`, and any method calls will throw.
 // We reassign the class variable to keep the autodoc generator happy.
-if (NativeAppState) {
-  AppState = new AppState();
-} else {
-  AppState = new MissingNativeAppStateShim();
-}
+const AppStateInstance: AppState | MissingNativeAppStateShim = NativeAppState
+  ? new AppState()
+  : new MissingNativeAppStateShim();
 
-module.exports = AppState;
+module.exports = AppStateInstance;

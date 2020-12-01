@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * This source code is licensed under the MIT license found in the
@@ -9,10 +9,10 @@
 
 #import <React/RCTMountingManagerDelegate.h>
 #import <React/RCTPrimitives.h>
-#import <react/core/ComponentDescriptor.h>
-#import <react/core/ReactPrimitives.h>
-#import <react/mounting/MountingCoordinator.h>
-#import <react/mounting/ShadowView.h>
+#import <react/renderer/core/ComponentDescriptor.h>
+#import <react/renderer/core/ReactPrimitives.h>
+#import <react/renderer/mounting/MountingCoordinator.h>
+#import <react/renderer/mounting/ShadowView.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -32,10 +32,15 @@ NS_ASSUME_NONNULL_BEGIN
  */
 - (void)scheduleTransaction:(facebook::react::MountingCoordinator::Shared const &)mountingCoordinator;
 
+/**
+ * Dispatch a command to be performed on the main thread.
+ * Can be called from any thread.
+ */
+- (void)dispatchCommand:(ReactTag)reactTag commandName:(NSString *)commandName args:(NSArray *)args;
+
 - (void)synchronouslyUpdateViewOnUIThread:(ReactTag)reactTag
                              changedProps:(NSDictionary *)props
                       componentDescriptor:(const facebook::react::ComponentDescriptor &)componentDescriptor;
-
 @end
 
 NS_ASSUME_NONNULL_END

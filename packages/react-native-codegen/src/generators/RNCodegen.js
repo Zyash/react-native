@@ -17,25 +17,36 @@ TODO:
 */
 
 const fs = require('fs');
-const generateComponentDescriptorH = require('./GenerateComponentDescriptorH.js');
-const generateEventEmitterCpp = require('./GenerateEventEmitterCpp.js');
-const generateEventEmitterH = require('./GenerateEventEmitterH.js');
-const generatePropsCpp = require('./GeneratePropsCpp.js');
-const generatePropsH = require('./GeneratePropsH.js');
-const generateTests = require('./GenerateTests.js');
-const generateShadowNodeCpp = require('./GenerateShadowNodeCpp.js');
-const generateShadowNodeH = require('./GenerateShadowNodeH.js');
-const generateViewConfigJs = require('./GenerateViewConfigJs.js');
+const generateComponentDescriptorH = require('./components/GenerateComponentDescriptorH.js');
+const generateComponentHObjCpp = require('./components/GenerateComponentHObjCpp.js');
+const generateEventEmitterCpp = require('./components/GenerateEventEmitterCpp.js');
+const generateEventEmitterH = require('./components/GenerateEventEmitterH.js');
+const generatePropsCpp = require('./components/GeneratePropsCpp.js');
+const generatePropsH = require('./components/GeneratePropsH.js');
+const generateModuleH = require('./modules/GenerateModuleH.js');
+const generateModuleCpp = require('./modules/GenerateModuleCpp.js');
+const generateModuleObjCpp = require('./modules/GenerateModuleObjCpp');
+const generateModuleJavaSpec = require('./modules/GenerateModuleJavaSpec.js');
+const GenerateModuleJniCpp = require('./modules/GenerateModuleJniCpp.js');
+const GenerateModuleJniH = require('./modules/GenerateModuleJniH.js');
+const generatePropsJavaInterface = require('./components/GeneratePropsJavaInterface.js');
+const generatePropsJavaDelegate = require('./components/GeneratePropsJavaDelegate.js');
+const generateTests = require('./components/GenerateTests.js');
+const generateShadowNodeCpp = require('./components/GenerateShadowNodeCpp.js');
+const generateShadowNodeH = require('./components/GenerateShadowNodeH.js');
+const generateViewConfigJs = require('./components/GenerateViewConfigJs.js');
 const path = require('path');
 const schemaValidator = require('../SchemaValidator.js');
 
 import type {SchemaType} from '../CodegenSchema';
 
-type Options = $ReadOnly<{|
+type Options = $ReadOnly<{
   libraryName: string,
   schema: SchemaType,
   outputDirectory: string,
-|}>;
+  moduleSpecName: string,
+  packageName?: string, // Some platforms have a notion of package, which should be configurable.
+}>;
 
 type Generators =
   | 'descriptors'
@@ -43,23 +54,38 @@ type Generators =
   | 'props'
   | 'tests'
   | 'shadow-nodes'
-  | 'view-configs';
+  | 'modulesAndroid'
+  | 'modulesCxx'
+  | 'modulesIOS';
 
-type Config = $ReadOnly<{|
+type Config = $ReadOnly<{
   generators: Array<Generators>,
   test?: boolean,
-|}>;
+}>;
 
 const GENERATORS = {
   descriptors: [generateComponentDescriptorH.generate],
   events: [generateEventEmitterCpp.generate, generateEventEmitterH.generate],
-  props: [generatePropsCpp.generate, generatePropsH.generate],
+  props: [
+    generateComponentHObjCpp.generate,
+    generatePropsCpp.generate,
+    generatePropsH.generate,
+    generatePropsJavaInterface.generate,
+    generatePropsJavaDelegate.generate,
+  ],
+  // TODO: Refactor this to consolidate various C++ output variation instead of forking per platform.
+  modulesAndroid: [
+    GenerateModuleJniCpp.generate,
+    GenerateModuleJniH.generate,
+    generateModuleJavaSpec.generate,
+  ],
+  modulesCxx: [generateModuleCpp.generate, generateModuleH.generate],
+  modulesIOS: [generateModuleObjCpp.generate],
   tests: [generateTests.generate],
   'shadow-nodes': [
     generateShadowNodeCpp.generate,
     generateShadowNodeH.generate,
   ],
-  'view-configs': [generateViewConfigJs.generate],
 };
 
 function writeMapToFiles(map: Map<string, string>, outputDir: string) {
@@ -67,6 +93,10 @@ function writeMapToFiles(map: Map<string, string>, outputDir: string) {
   map.forEach((contents: string, fileName: string) => {
     try {
       const location = path.join(outputDir, fileName);
+      const dirName = path.dirname(location);
+      if (!fs.existsSync(dirName)) {
+        fs.mkdirSync(dirName, {recursive: true});
+      }
       fs.writeFileSync(location, contents);
     } catch (error) {
       success = false;
@@ -98,7 +128,13 @@ function checkFilesForChanges(
 
 module.exports = {
   generate(
-    {libraryName, schema, outputDirectory}: Options,
+    {
+      libraryName,
+      schema,
+      outputDirectory,
+      moduleSpecName,
+      packageName,
+    }: Options,
     {generators, test}: Config,
   ): boolean {
     schemaValidator.validate(schema);
@@ -106,7 +142,9 @@ module.exports = {
     const generatedFiles = [];
     for (const name of generators) {
       for (const generator of GENERATORS[name]) {
-        generatedFiles.push(...generator(libraryName, schema));
+        generatedFiles.push(
+          ...generator(libraryName, schema, moduleSpecName, packageName),
+        );
       }
     }
 
@@ -117,5 +155,19 @@ module.exports = {
     }
 
     return writeMapToFiles(filesToUpdate, outputDirectory);
+  },
+  generateViewConfig({libraryName, schema}: Options): string {
+    schemaValidator.validate(schema);
+
+    const result = generateViewConfigJs
+      .generate(libraryName, schema)
+      .values()
+      .next();
+
+    if (typeof result.value !== 'string') {
+      throw new Error(`Failed to generate view config for ${libraryName}`);
+    }
+
+    return result.value;
   },
 };

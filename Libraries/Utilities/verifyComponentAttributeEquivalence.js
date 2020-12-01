@@ -10,11 +10,11 @@
 
 'use strict';
 
-const getNativeComponentAttributes = require('../ReactNative/getNativeComponentAttributes');
+import ReactNativeViewViewConfig from '../Components/View/ReactNativeViewViewConfig';
+import {type ViewConfig} from '../Renderer/shims/ReactNativeTypes';
 
-import type {ReactNativeBaseComponentViewConfig} from '../Renderer/shims/ReactNativeTypes';
+const IGNORED_KEYS = ['transform', 'hitSlop'];
 
-const IGNORED_KEYS = ['transform'];
 /**
  * The purpose of this function is to validate that the view config that
  * native exposes for a given view manager is the same as the view config
@@ -38,32 +38,31 @@ const IGNORED_KEYS = ['transform'];
  * single source of truth. I wonder if this message will still be here two
  * years from now...
  */
-function verifyComponentAttributeEquivalence(
-  componentName: string,
-  config: ReactNativeBaseComponentViewConfig<>,
+export default function verifyComponentAttributeEquivalence(
+  nativeViewConfig: ViewConfig,
+  staticViewConfig: ViewConfig,
 ) {
-  if (__DEV__) {
-    const nativeAttributes = getNativeComponentAttributes(componentName);
-
-    ['validAttributes', 'bubblingEventTypes', 'directEventTypes'].forEach(
-      prop => {
-        const diffKeys = Object.keys(
-          lefthandObjectDiff(nativeAttributes[prop], config[prop]),
-        );
-
-        if (diffKeys.length) {
-          console.error(
-            `${componentName} generated view config for ${prop} does not match native, missing: ${diffKeys.join(
-              ' ',
-            )}`,
-          );
-        }
-      },
+  for (const prop of [
+    'validAttributes',
+    'bubblingEventTypes',
+    'directEventTypes',
+  ]) {
+    const diff = Object.keys(
+      lefthandObjectDiff(nativeViewConfig[prop], staticViewConfig[prop]),
     );
+
+    if (diff.length > 0) {
+      const name =
+        staticViewConfig.uiViewClassName ?? nativeViewConfig.uiViewClassName;
+      console.error(
+        `'${name}' has a view config that does not match native. ` +
+          `'${prop}' is missing: ${diff.join(', ')}`,
+      );
+    }
   }
 }
 
-function lefthandObjectDiff(leftObj: Object, rightObj: Object) {
+export function lefthandObjectDiff(leftObj: Object, rightObj: Object): Object {
   const differentKeys = {};
 
   function compare(leftItem, rightItem, key) {
@@ -101,4 +100,31 @@ function lefthandObjectDiff(leftObj: Object, rightObj: Object) {
   return differentKeys;
 }
 
-module.exports = verifyComponentAttributeEquivalence;
+export function getConfigWithoutViewProps(
+  viewConfig: ViewConfig,
+  propName: string,
+): {...} {
+  if (!viewConfig[propName]) {
+    return {};
+  }
+
+  return Object.keys(viewConfig[propName])
+    .filter(prop => !ReactNativeViewViewConfig[propName][prop])
+    .reduce((obj, prop) => {
+      obj[prop] = viewConfig[propName][prop];
+      return obj;
+    }, {});
+}
+
+export function stringifyViewConfig(viewConfig: any): string {
+  return JSON.stringify(
+    viewConfig,
+    (key, val) => {
+      if (typeof val === 'function') {
+        return `ƒ ${val.name}`;
+      }
+      return val;
+    },
+    2,
+  );
+}

@@ -1,30 +1,45 @@
-// Copyright 2004-present Facebook. All Rights Reserved.
+/*
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
 
 package com.facebook.react.turbomodule.core;
 
+import androidx.annotation.Nullable;
+import com.facebook.infer.annotation.Assertions;
+import com.facebook.proguard.annotations.DoNotStrip;
 import com.facebook.react.ReactPackage;
 import com.facebook.react.TurboReactPackage;
 import com.facebook.react.bridge.CxxModuleWrapper;
 import com.facebook.react.bridge.NativeModule;
 import com.facebook.react.bridge.ReactApplicationContext;
+import com.facebook.react.config.ReactFeatureFlags;
+import com.facebook.react.module.model.ReactModuleInfo;
 import com.facebook.react.turbomodule.core.interfaces.TurboModule;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
-import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Map;
 
 public abstract class ReactPackageTurboModuleManagerDelegate extends TurboModuleManagerDelegate {
   private final List<TurboReactPackage> mPackages = new ArrayList<>();
-  private final Map<String, TurboModule> mModules = new HashMap<>();
+  private final Map<TurboReactPackage, Map<String, ReactModuleInfo>> mPackageModuleInfos =
+      new HashMap<>();
   private final ReactApplicationContext mReactApplicationContext;
 
-  public ReactPackageTurboModuleManagerDelegate(ReactApplicationContext reactApplicationContext, List<ReactPackage> packages) {
-    super(reactApplicationContext);
+  protected ReactPackageTurboModuleManagerDelegate(
+      ReactApplicationContext reactApplicationContext, List<ReactPackage> packages) {
+    super();
     mReactApplicationContext = reactApplicationContext;
     for (ReactPackage reactPackage : packages) {
       if (reactPackage instanceof TurboReactPackage) {
-        mPackages.add((TurboReactPackage)reactPackage);
+        TurboReactPackage pkg = (TurboReactPackage) reactPackage;
+        mPackages.add(pkg);
+        if (ReactFeatureFlags.enableTurboModulePackageInfoValidation) {
+          mPackageModuleInfos.put(pkg, pkg.getReactModuleInfoProvider().getReactModuleInfos());
+        }
       }
     }
   }
@@ -41,12 +56,12 @@ public abstract class ReactPackageTurboModuleManagerDelegate extends TurboModule
       return null;
     }
 
-
     return module;
   }
 
   @Nullable
   @Override
+  @DoNotStrip
   public CxxModuleWrapper getLegacyCxxModule(String moduleName) {
     TurboModule module = resolveModule(moduleName);
     if (module == null) {
@@ -57,48 +72,89 @@ public abstract class ReactPackageTurboModuleManagerDelegate extends TurboModule
       return null;
     }
 
-
-    return (CxxModuleWrapper)module;
+    return (CxxModuleWrapper) module;
   }
 
+  @Nullable
   private TurboModule resolveModule(String moduleName) {
-    if (mModules.containsKey(moduleName)) {
-      return mModules.get(moduleName);
-    }
-
     NativeModule resolvedModule = null;
 
     for (final TurboReactPackage pkg : mPackages) {
       try {
-        NativeModule module = pkg.getModule(moduleName, mReactApplicationContext);
-        if (resolvedModule == null || module != null && module.canOverrideExistingModule()) {
-          resolvedModule = module;
+        if (ReactFeatureFlags.enableTurboModulePackageInfoValidation) {
+          final ReactModuleInfo moduleInfo = mPackageModuleInfos.get(pkg).get(moduleName);
+          if (moduleInfo == null
+              || !moduleInfo.isTurboModule()
+              || resolvedModule != null && !moduleInfo.canOverrideExistingModule()) {
+            continue;
+          }
+
+          final NativeModule module = pkg.getModule(moduleName, mReactApplicationContext);
+          if (module != null) {
+            resolvedModule = module;
+          }
+        } else {
+          final NativeModule module = pkg.getModule(moduleName, mReactApplicationContext);
+          if (resolvedModule == null || module != null && module.canOverrideExistingModule()) {
+            resolvedModule = module;
+          }
         }
       } catch (IllegalArgumentException ex) {
         /**
-         * TurboReactPackages can throw an IllegalArgumentException when a module
-         * isn't found. If this happens, it's safe to ignore the exception because
-         * a later TurboReactPackage could provide the module.
+         * TurboReactPackages can throw an IllegalArgumentException when a module isn't found. If
+         * this happens, it's safe to ignore the exception because a later TurboReactPackage could
+         * provide the module.
          */
       }
     }
 
     if (resolvedModule instanceof TurboModule) {
-      mModules.put(moduleName, (TurboModule)resolvedModule);
-    } else {
-      /**
-       * 1. The list of TurboReactPackages doesn't change.
-       * 2. TurboReactPackage.getModule is deterministic. Therefore, any two
-       * invocations of TurboReactPackage.getModule will return the same result
-       * given that they're provided the same arguments.
-       *
-       * Hence, if module lookup fails once, we know it'll fail every time.
-       * Therefore, we can write null to the mModules Map and avoid doing this
-       * extra work.
-       */
-      mModules.put(moduleName, null);
+      return (TurboModule) resolvedModule;
     }
 
-    return mModules.get(moduleName);
+    return null;
+  }
+
+  @Override
+  public List<String> getEagerInitModuleNames() {
+    List<String> moduleNames = new ArrayList<>();
+    for (TurboReactPackage reactPackage : mPackages) {
+      for (ReactModuleInfo moduleInfo :
+          reactPackage.getReactModuleInfoProvider().getReactModuleInfos().values()) {
+
+        if (moduleInfo.isTurboModule() && moduleInfo.needsEagerInit()) {
+          moduleNames.add(moduleInfo.name());
+        }
+      }
+    }
+    return moduleNames;
+  }
+
+  public abstract static class Builder {
+    private @Nullable List<ReactPackage> mPackages;
+    private @Nullable ReactApplicationContext mContext;
+
+    public Builder setPackages(List<ReactPackage> packages) {
+      mPackages = new ArrayList<>(packages);
+      return this;
+    }
+
+    public Builder setReactApplicationContext(ReactApplicationContext context) {
+      mContext = context;
+      return this;
+    }
+
+    protected abstract ReactPackageTurboModuleManagerDelegate build(
+        ReactApplicationContext context, List<ReactPackage> packages);
+
+    public ReactPackageTurboModuleManagerDelegate build() {
+      Assertions.assertNotNull(
+          mContext,
+          "The ReactApplicationContext must be provided to create ReactPackageTurboModuleManagerDelegate");
+      Assertions.assertNotNull(
+          mPackages,
+          "A set of ReactPackages must be provided to create ReactPackageTurboModuleManagerDelegate");
+      return build(mContext, mPackages);
+    }
   }
 }
